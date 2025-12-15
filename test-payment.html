@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Pagamento - Stripe</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .amount {
+      font-size: 24px;
+      color: #635bff;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+    #card-element {
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      background: white;
+    }
+    .StripeElement {
+      height: 40px;
+      padding: 10px 12px;
+      color: #32325d;
+      background-color: white;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px 0 #e6ebf1;
+      transition: box-shadow 150ms ease;
+    }
+    .StripeElement--focus {
+      box-shadow: 0 1px 3px 0 #cfd7df;
+    }
+    .StripeElement--invalid {
+      border-color: #fa755a;
+    }
+    .StripeElement--webkit-autofill {
+      background-color: #fefde5 !important;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      background: #635bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background: #5a52e5;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #payment-message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .info code {
+      background: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    h2 {
+      color: #333;
+      font-size: 18px;
+      margin-bottom: 20px;
+      margin-top: 0;
+    }
+    #payment-info {
+      margin-bottom: 20px;
+    }
+    #payment-info code {
+      background: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💳 Teste de Pagamento</h1>
+    
+    <div class="info">
+      <strong>💳 Use este cartão de teste:</strong><br>
+      • Número: <code>4242 4242 4242 4242</code><br>
+      • Data: <code>12/25</code> (qualquer data futura)<br>
+      • CVC: <code>123</code> (qualquer 3 dígitos)<br>
+    </div>
+
+    <!-- Passo 1: Criar PaymentIntent -->
+    <div id="step1-create-payment">
+      <h2>Passo 1: Criar Pagamento</h2>
+      <form id="create-payment-form">
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Valor (R$)</label>
+          <input type="number" id="amount-input" value="100.50" step="0.01" min="0.01" 
+                 style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box;" 
+                 required />
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Forma de Pagamento</label>
+          <div style="display: flex; gap: 10px;">
+            <label style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+              <input type="radio" name="payment-method" value="card" checked style="margin-right: 5px;" />
+              💳 Cartão
+            </label>
+            <label style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+              <input type="radio" name="payment-method" value="pix" style="margin-right: 5px;" />
+              📱 PIX
+            </label>
+          </div>
+        </div>
+        <button id="create-payment-button" type="submit">
+          <span id="create-button-text">Criar Pagamento</span>
+          <span id="create-spinner" style="display: none;">Criando...</span>
+        </button>
+      </form>
+      <div id="create-payment-message"></div>
+    </div>
+
+    <!-- Passo 2: Confirmar Pagamento -->
+    <div id="step2-confirm-payment" style="display: none;">
+      <h2>Passo 2: Confirmar Pagamento</h2>
+      <div class="amount" id="payment-amount-display"></div>
+      <div id="payment-info" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 14px;">
+        <strong>PaymentIntent ID:</strong> <code id="payment-id"></code><br>
+        <strong>Método:</strong> <span id="payment-method-display"></span><br>
+        <strong>Status:</strong> <span id="payment-status"></span>
+      </div>
+      
+      <!-- Formulário para Cartão -->
+      <div id="card-payment-section" style="display: none;">
+        <div style="margin-bottom: 15px; padding: 15px; background: #e7f3ff; border-radius: 4px; border-left: 4px solid #2196F3;">
+          <strong>💡 Dica:</strong> Use o botão abaixo para testar automaticamente com cartão de teste, ou preencha manualmente os campos <strong>Stripe Elements</strong> abaixo.
+          <br><small style="color: #666;">Os campos abaixo usam <strong>Stripe Elements</strong> para coleta segura de dados do cartão.</small>
+        </div>
+        
+        <button type="button" id="use-test-card-button" 
+                style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 20px; transition: background 0.2s;"
+                onmouseover="this.style.background='#218838'" 
+                onmouseout="this.style.background='#28a745'">
+          🚀 Usar Cartão de Teste (4242 4242 4242 4242)
+        </button>
+        
+        <form id="payment-form">
+          <!-- Stripe Elements -->
+          <div id="stripe-elements-container">
+            <div style="margin-bottom: 10px;">
+              <label style="display: block; margin-bottom: 5px; font-weight: 600;">Dados do Cartão</label>
+            </div>
+            <div id="card-element">
+              <!-- Stripe Elements criará os campos do cartão aqui -->
+            </div>
+          </div>
+          
+          <button id="submit-button" type="submit" style="margin-top: 20px;">
+            <span id="button-text">Confirmar Pagamento</span>
+            <span id="spinner" style="display: none;">Processando...</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Seção para PIX -->
+      <div id="pix-payment-section" style="display: none;">
+        <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 4px; margin-bottom: 20px;">
+          <h3 style="margin-top: 0;">Escaneie o QR Code para pagar</h3>
+          <div id="pix-qr-code" style="margin: 20px 0;">
+            <!-- QR Code será inserido aqui -->
+          </div>
+          <div id="pix-instructions" style="font-size: 14px; color: #666;">
+            <!-- Instruções do PIX -->
+          </div>
+        </div>
+        <button id="check-pix-status-button" style="width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer;">
+          Verificar Status do Pagamento
+        </button>
+      </div>
+
+      <div id="payment-message"></div>
+    </div>
+  </div>
+
+  <script>
+    // Configuração
+    const API_URL = 'http://localhost:3000';
+    const stripe = Stripe('pk_test_51Se60uQ2ZR2RvASJMYWHyY7p9vRdPZ8cTm4j87VDAXWcWH7gOJfIgVYwyB1qCcfEvtP4T4sOFHwny4EdG3GvJoYM00t61xyGzk');
+    
+    // Variáveis globais
+    let clientSecret = null;
+    let cardElement = null;
+    let elements = null;
+    let currentPaymentMethod = 'card';
+    let currentPaymentIntentId = null;
+
+    // Elementos do DOM
+    const step1Div = document.getElementById('step1-create-payment');
+    const step2Div = document.getElementById('step2-confirm-payment');
+    const createPaymentForm = document.getElementById('create-payment-form');
+    const createPaymentButton = document.getElementById('create-payment-button');
+    const createButtonText = document.getElementById('create-button-text');
+    const createSpinner = document.getElementById('create-spinner');
+    const createPaymentMessage = document.getElementById('create-payment-message');
+    const paymentForm = document.getElementById('payment-form');
+    const submitButton = document.getElementById('submit-button');
+    const buttonText = document.getElementById('button-text');
+    const spinner = document.getElementById('spinner');
+    const paymentMessage = document.getElementById('payment-message');
+    const cardPaymentSection = document.getElementById('card-payment-section');
+    const pixPaymentSection = document.getElementById('pix-payment-section');
+    const checkPixStatusButton = document.getElementById('check-pix-status-button');
+
+    // Passo 1: Criar PaymentIntent
+    createPaymentForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      
+      createPaymentButton.disabled = true;
+      createButtonText.style.display = 'none';
+      createSpinner.style.display = 'inline';
+      createPaymentMessage.style.display = 'none';
+
+      try {
+        const amount = parseFloat(document.getElementById('amount-input').value);
+        const selectedPaymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+        
+        if (!amount || amount <= 0) {
+          throw new Error('Valor inválido');
+        }
+
+        // Chamar endpoint do backend
+        const response = await fetch(`${API_URL}/payments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            amount,
+            paymentMethod: selectedPaymentMethod,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao criar pagamento');
+        }
+
+        const paymentData = await response.json();
+        
+        // Armazenar dados do pagamento
+        clientSecret = paymentData.clientSecret;
+        currentPaymentMethod = paymentData.paymentMethod || selectedPaymentMethod;
+        currentPaymentIntentId = paymentData.id;
+        
+        // Atualizar UI
+        document.getElementById('payment-amount-display').textContent = 
+          `R$ ${paymentData.amount.toFixed(2)}`;
+        document.getElementById('payment-id').textContent = paymentData.id;
+        document.getElementById('payment-status').textContent = paymentData.status;
+        document.getElementById('payment-method-display').textContent = 
+          currentPaymentMethod === 'pix' ? '📱 PIX' : '💳 Cartão';
+        
+        // Mostrar passo 2
+        step1Div.style.display = 'none';
+        step2Div.style.display = 'block';
+        
+        // Mostrar seção apropriada
+        if (currentPaymentMethod === 'pix') {
+          cardPaymentSection.style.display = 'none';
+          pixPaymentSection.style.display = 'block';
+          
+          // Mostrar QR Code do PIX
+          if (paymentData.pixQrCode) {
+            displayPixQrCode(paymentData.pixQrCode, paymentData.pixInstructions);
+          } else {
+            // Se não vier o QR code, buscar novamente
+            setTimeout(() => checkPixStatus(), 1000);
+          }
+          
+          // Iniciar polling de status
+          startPixStatusPolling();
+        } else {
+          cardPaymentSection.style.display = 'block';
+          pixPaymentSection.style.display = 'none';
+          // Inicializar Stripe Elements para cartão
+          initializeStripeElements();
+          // Garantir que o event listener do botão de teste está anexado
+          attachTestCardButtonListener();
+          stopPixStatusPolling();
+        }
+        
+        createPaymentMessage.className = 'success';
+        createPaymentMessage.textContent = '✅ PaymentIntent criado com sucesso!';
+        createPaymentMessage.style.display = 'block';
+        
+      } catch (err) {
+        createPaymentMessage.className = 'error';
+        createPaymentMessage.textContent = err.message || 'Erro ao criar pagamento';
+        createPaymentMessage.style.display = 'block';
+        
+        createPaymentButton.disabled = false;
+        createButtonText.style.display = 'inline';
+        createSpinner.style.display = 'none';
+      }
+    });
+
+    // Inicializar Stripe Elements (recomendado pelo Stripe para coleta segura de dados)
+    // Documentação: https://stripe.com/docs/stripe-js#elements
+    function initializeStripeElements() {
+      if (cardElement) {
+        cardElement.unmount();
+      }
+
+      // Criar instância do Stripe Elements
+      elements = stripe.elements({
+        appearance: {
+          theme: 'stripe',
+        },
+        locale: 'pt-BR', // Português do Brasil
+      });
+      
+      // Criar elemento de cartão usando Stripe Elements
+      cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#424770',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            '::placeholder': {
+              color: '#aab7c4',
+            },
+          },
+          invalid: {
+            color: '#9e2146',
+            iconColor: '#9e2146',
+          },
+        },
+      });
+
+      // Montar o elemento no DOM
+      cardElement.mount('#card-element');
+
+      // Detectar erros em tempo real
+      cardElement.on('change', ({error, complete}) => {
+        if (error) {
+          paymentMessage.className = 'error';
+          paymentMessage.textContent = error.message;
+          paymentMessage.style.display = 'block';
+        } else {
+          paymentMessage.style.display = 'none';
+        }
+      });
+      
+      // Detectar quando o cartão está completo
+      cardElement.on('ready', () => {
+        console.log('Stripe Elements pronto para uso');
+      });
+    }
+
+    // Função para usar cartão de teste automaticamente
+    async function useTestCard(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
+      console.log('Botão de teste clicado, clientSecret:', clientSecret ? 'existe' : 'não existe');
+      
+      if (!clientSecret) {
+        paymentMessage.className = 'error';
+        paymentMessage.textContent = 'Erro: ClientSecret não encontrado. Crie um pagamento primeiro.';
+        paymentMessage.style.display = 'block';
+        return;
+      }
+      
+      const useTestCardButton = document.getElementById('use-test-card-button');
+      if (!useTestCardButton) {
+        console.error('Botão não encontrado');
+        return;
+      }
+      
+      useTestCardButton.disabled = true;
+      useTestCardButton.textContent = '⏳ Processando com cartão de teste...';
+      paymentMessage.style.display = 'none';
+
+      try {
+        console.log('Criando PaymentMethod com cartão de teste...');
+        
+        // Criar PaymentMethod usando Stripe API (válido para testes)
+        // Nota: Em produção, sempre use Stripe Elements para coletar dados do cartão
+        const {paymentMethod, error: pmError} = await stripe.createPaymentMethod({
+          type: 'card',
+          card: {
+            number: '4242424242424242',
+            exp_month: 12,
+            exp_year: 2025,
+            cvc: '123',
+          },
+          billing_details: {
+            name: 'Cliente Teste',
+          },
+        });
+        
+        if (pmError) {
+          console.error('Erro ao criar PaymentMethod:', pmError);
+          throw pmError;
+        }
+        
+        console.log('PaymentMethod criado:', paymentMethod.id);
+        console.log('Confirmando pagamento com clientSecret:', clientSecret);
+        
+        // Confirmar pagamento usando confirmCardPayment (recomendado pelo Stripe)
+        // Isso garante que seguimos o fluxo recomendado mesmo para testes
+        const {error, paymentIntent} = await stripe.confirmCardPayment(
+          clientSecret,
+          {
+            payment_method: paymentMethod.id,
+          }
+        );
+        
+        console.log('Resultado da confirmação:', { error, paymentIntent: paymentIntent?.id, status: paymentIntent?.status });
+
+        if (error) {
+          paymentMessage.className = 'error';
+          paymentMessage.textContent = error.message;
+          paymentMessage.style.display = 'block';
+          useTestCardButton.disabled = false;
+          useTestCardButton.textContent = '🚀 Usar Cartão de Teste (4242 4242 4242 4242)';
+        } else if (paymentIntent.status === 'succeeded') {
+          // Pagamento bem-sucedido!
+          paymentMessage.className = 'success';
+          paymentMessage.innerHTML = `
+            <strong>✅ Pagamento realizado com sucesso!</strong><br>
+            <strong>ID:</strong> ${paymentIntent.id}<br>
+            <strong>Valor:</strong> R$ ${(paymentIntent.amount / 100).toFixed(2)}<br>
+            <strong>Status:</strong> ${paymentIntent.status}<br>
+            <strong>Cartão usado:</strong> 4242 4242 4242 4242 (teste)
+          `;
+          paymentMessage.style.display = 'block';
+          
+          // Atualizar status na UI
+          document.getElementById('payment-status').textContent = paymentIntent.status;
+          
+          // Desabilitar formulário
+          document.getElementById('payment-form').style.display = 'none';
+          useTestCardButton.style.display = 'none';
+          
+          console.log('PaymentIntent confirmado:', paymentIntent);
+        } else if (paymentIntent.status === 'requires_action') {
+          paymentMessage.className = 'info';
+          paymentMessage.textContent = '⏳ Autenticação 3D Secure necessária. Siga as instruções...';
+          paymentMessage.style.display = 'block';
+          
+          // Atualizar status
+          document.getElementById('payment-status').textContent = paymentIntent.status;
+          useTestCardButton.disabled = false;
+          useTestCardButton.textContent = '🚀 Usar Cartão de Teste (4242 4242 4242 4242)';
+        } else {
+          paymentMessage.className = 'info';
+          paymentMessage.textContent = `Status: ${paymentIntent.status}`;
+          paymentMessage.style.display = 'block';
+          document.getElementById('payment-status').textContent = paymentIntent.status;
+          useTestCardButton.disabled = false;
+          useTestCardButton.textContent = '🚀 Usar Cartão de Teste (4242 4242 4242 4242)';
+        }
+      } catch (err) {
+        paymentMessage.className = 'error';
+        paymentMessage.textContent = err.message || 'Erro inesperado: ' + err;
+        paymentMessage.style.display = 'block';
+        useTestCardButton.disabled = false;
+        useTestCardButton.textContent = '🚀 Usar Cartão de Teste (4242 4242 4242 4242)';
+      }
+    }
+
+    // Função para anexar event listener ao botão de teste
+    function attachTestCardButtonListener() {
+      const useTestCardButton = document.getElementById('use-test-card-button');
+      if (useTestCardButton) {
+        // Remover listener anterior se existir
+        useTestCardButton.replaceWith(useTestCardButton.cloneNode(true));
+        const newButton = document.getElementById('use-test-card-button');
+        newButton.addEventListener('click', useTestCard);
+        console.log('Event listener do botão de teste anexado');
+      } else {
+        console.error('Botão use-test-card-button não encontrado');
+      }
+    }
+
+    // Anexar listener quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachTestCardButtonListener);
+    } else {
+      attachTestCardButtonListener();
+    }
+
+    // Passo 2: Confirmar Pagamento
+    paymentForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      
+      if (!clientSecret) {
+        paymentMessage.className = 'error';
+        paymentMessage.textContent = 'Erro: ClientSecret não encontrado. Crie um pagamento primeiro.';
+        paymentMessage.style.display = 'block';
+        return;
+      }
+      
+      submitButton.disabled = true;
+      buttonText.style.display = 'none';
+      spinner.style.display = 'inline';
+      paymentMessage.style.display = 'none';
+
+      try {
+        // Confirmar pagamento usando Stripe Elements (recomendado pelo Stripe)
+        // O cardElement é criado pelo Stripe Elements e coleta os dados de forma segura
+        // Documentação: https://stripe.com/docs/stripe-js#elements
+        const {error, paymentIntent} = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement, // Usa o elemento do Stripe Elements
+            billing_details: {
+              name: 'Cliente Teste',
+            }
+          }
+        });
+
+        if (error) {
+          paymentMessage.className = 'error';
+          paymentMessage.textContent = error.message;
+          paymentMessage.style.display = 'block';
+          
+          submitButton.disabled = false;
+          buttonText.style.display = 'inline';
+          spinner.style.display = 'none';
+        } else if (paymentIntent.status === 'succeeded') {
+          // Pagamento bem-sucedido!
+          paymentMessage.className = 'success';
+          paymentMessage.innerHTML = `
+            <strong>✅ Pagamento realizado com sucesso!</strong><br>
+            <strong>ID:</strong> ${paymentIntent.id}<br>
+            <strong>Valor:</strong> R$ ${(paymentIntent.amount / 100).toFixed(2)}<br>
+            <strong>Status:</strong> ${paymentIntent.status}
+          `;
+          paymentMessage.style.display = 'block';
+          
+          // Atualizar status na UI
+          document.getElementById('payment-status').textContent = paymentIntent.status;
+          
+          // Desabilitar formulário
+          paymentForm.style.display = 'none';
+          
+          console.log('PaymentIntent confirmado:', paymentIntent);
+        } else if (paymentIntent.status === 'requires_action') {
+          paymentMessage.className = 'info';
+          paymentMessage.textContent = '⏳ Autenticação 3D Secure necessária. Siga as instruções...';
+          paymentMessage.style.display = 'block';
+          
+          // Atualizar status
+          document.getElementById('payment-status').textContent = paymentIntent.status;
+        } else {
+          paymentMessage.className = 'info';
+          paymentMessage.textContent = `Status: ${paymentIntent.status}`;
+          paymentMessage.style.display = 'block';
+          document.getElementById('payment-status').textContent = paymentIntent.status;
+        }
+      } catch (err) {
+        paymentMessage.className = 'error';
+        paymentMessage.textContent = err.message || 'Erro inesperado: ' + err;
+        paymentMessage.style.display = 'block';
+        
+        submitButton.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+      }
+    });
+
+    // Função para exibir QR Code do PIX
+    function displayPixQrCode(qrCode, instructions) {
+      const qrCodeDiv = document.getElementById('pix-qr-code');
+      const instructionsDiv = document.getElementById('pix-instructions');
+      
+      if (qrCode) {
+        // Criar imagem do QR Code
+        const img = document.createElement('img');
+        img.src = qrCode;
+        img.alt = 'QR Code PIX';
+        img.style.maxWidth = '300px';
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.border = '2px solid #ddd';
+        img.style.borderRadius = '8px';
+        img.style.padding = '10px';
+        img.style.background = 'white';
+        
+        qrCodeDiv.innerHTML = '';
+        qrCodeDiv.appendChild(img);
+      }
+      
+      if (instructions) {
+        let instructionsText = '<strong>Instruções:</strong><br>';
+        if (instructions.hosted_voucher_url) {
+          instructionsText += `<a href="${instructions.hosted_voucher_url}" target="_blank" style="color: #635bff; text-decoration: none;">Abrir QR Code em nova aba</a><br>`;
+        }
+        if (instructions.expires_at) {
+          const expiresDate = new Date(instructions.expires_at * 1000);
+          instructionsText += `Expira em: ${expiresDate.toLocaleString('pt-BR')}`;
+        }
+        instructionsDiv.innerHTML = instructionsText;
+      }
+    }
+
+    // Função para verificar status do PIX
+    async function checkPixStatus() {
+      if (!currentPaymentIntentId) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/payments/${currentPaymentIntentId}/status`);
+        
+        if (!response.ok) {
+          throw new Error('Erro ao verificar status');
+        }
+        
+        const paymentData = await response.json();
+        
+        // Atualizar status na UI
+        document.getElementById('payment-status').textContent = paymentData.status;
+        
+        // Se ainda não tem QR code e o backend retornou, exibir
+        if (paymentData.pixQrCode && !document.querySelector('#pix-qr-code img')) {
+          displayPixQrCode(paymentData.pixQrCode, paymentData.pixInstructions);
+        }
+        
+        if (paymentData.status === 'succeeded') {
+          paymentMessage.className = 'success';
+          paymentMessage.innerHTML = `
+            <strong>✅ Pagamento PIX realizado com sucesso!</strong><br>
+            <strong>ID:</strong> ${paymentData.id}<br>
+            <strong>Valor:</strong> R$ ${paymentData.amount.toFixed(2)}<br>
+            <strong>Status:</strong> ${paymentData.status}
+          `;
+          paymentMessage.style.display = 'block';
+          checkPixStatusButton.disabled = true;
+          checkPixStatusButton.textContent = 'Pagamento Confirmado';
+          stopPixStatusPolling();
+        } else if (paymentData.status === 'processing') {
+          paymentMessage.className = 'info';
+          paymentMessage.textContent = '⏳ Pagamento PIX sendo processado...';
+          paymentMessage.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Erro ao verificar status:', err);
+      }
+    }
+
+    // Event listener para botão de verificar status PIX
+    checkPixStatusButton.addEventListener('click', checkPixStatus);
+
+    // Verificar status do PIX automaticamente a cada 3 segundos
+    let pixStatusInterval = null;
+    function startPixStatusPolling() {
+      if (pixStatusInterval) clearInterval(pixStatusInterval);
+      pixStatusInterval = setInterval(() => {
+        if (currentPaymentMethod === 'pix' && currentPaymentIntentId) {
+          checkPixStatus();
+        }
+      }, 3000);
+    }
+
+    // Parar polling quando o pagamento for concluído
+    function stopPixStatusPolling() {
+      if (pixStatusInterval) {
+        clearInterval(pixStatusInterval);
+        pixStatusInterval = null;
+      }
+    }
+  </script>
+</body>
+</html>
+
