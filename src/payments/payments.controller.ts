@@ -11,13 +11,19 @@ import {
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
+import { MercadoPagoService } from './mercado-pago.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { CreatePixPaymentDto } from './dto/create-pix-payment.dto';
+import { CreateCardPaymentDto } from './dto/create-card-payment.dto';
 import Stripe from 'stripe';
 import type { Request } from 'express';
 
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly mercadoPagoService: MercadoPagoService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -187,6 +193,125 @@ export class PaymentsController {
         );
       }
       throw error;
+    }
+  }
+
+  @Post('pix')
+  @HttpCode(HttpStatus.CREATED)
+  async createPixPayment(@Body() createPixPaymentDto: CreatePixPaymentDto) {
+    try {
+      const payment = await this.mercadoPagoService.createPixPayment(
+        createPixPaymentDto.amount,
+        createPixPaymentDto.email,
+        createPixPaymentDto.description,
+      );
+
+      return {
+        qr_code_base64: payment.qr_code_base64,
+        qr_code: payment.qr_code,
+        payment_id: payment.payment_id,
+        status: payment.status,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          statusCode: error.statusCode || 500,
+          message: error.message || 'Error creating PIX payment',
+        },
+        error.statusCode || 500,
+      );
+    }
+  }
+
+  @Get('config')
+  getPaymentConfig() {
+    // Retornar apenas a chave pública (não sensível)
+    const publicKey = process.env.MERCADO_PAGO_PUBLIC_KEY;
+    
+    return {
+      mercadoPagoPublicKey: publicKey || null,
+      hasPublicKey: !!publicKey,
+    };
+  }
+
+  @Get('pix/:paymentId/status')
+  async getPixPaymentStatus(@Param('paymentId') paymentId: string) {
+    try {
+      const payment = await this.mercadoPagoService.getPaymentStatus(paymentId);
+
+      return {
+        id: payment.id,
+        status: payment.status,
+        amount: payment.transaction_amount,
+        date_created: payment.date_created,
+        date_approved: payment.date_approved,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          statusCode: error.statusCode || 500,
+          message: error.message || 'Error getting PIX payment status',
+        },
+        error.statusCode || 500,
+      );
+    }
+  }
+
+  @Post('card')
+  @HttpCode(HttpStatus.CREATED)
+  async createCardPayment(@Body() createCardPaymentDto: CreateCardPaymentDto) {
+    try {
+      const payment = await this.mercadoPagoService.createCardPayment(
+        createCardPaymentDto.amount,
+        createCardPaymentDto.email,
+        createCardPaymentDto.description,
+        createCardPaymentDto.token,
+        createCardPaymentDto.installments || 1,
+        createCardPaymentDto.payment_method_id,
+        createCardPaymentDto.issuer_id,
+        createCardPaymentDto.payer_identification_type,
+        createCardPaymentDto.payer_identification_number,
+      );
+
+      return {
+        payment_id: payment.payment_id,
+        status: payment.status,
+        status_detail: payment.status_detail,
+        amount: payment.transaction_amount,
+        installments: payment.installments,
+        payment_method_id: payment.payment_method_id,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          statusCode: error.statusCode || 500,
+          message: error.message || 'Error creating card payment',
+        },
+        error.statusCode || 500,
+      );
+    }
+  }
+
+  @Get('card/:paymentId/status')
+  async getCardPaymentStatus(@Param('paymentId') paymentId: string) {
+    try {
+      const payment = await this.mercadoPagoService.getPaymentStatus(paymentId);
+
+      return {
+        id: payment.id,
+        status: payment.status,
+        amount: payment.transaction_amount,
+        date_created: payment.date_created,
+        date_approved: payment.date_approved,
+      };
+    } catch (error: any) {
+      throw new HttpException(
+        {
+          statusCode: error.statusCode || 500,
+          message: error.message || 'Error getting card payment status',
+        },
+        error.statusCode || 500,
+      );
     }
   }
 

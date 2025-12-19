@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Pagamento Cartão - Mercado Pago</title>
+  <!-- Mercado Pago SDK -->
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #009ee3 0%, #0073ce 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+      padding: 25px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #009ee3;
+    }
+
+    .section h2 {
+      color: #333;
+      font-size: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section h2::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: #009ee3;
+      border-radius: 2px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #009ee3;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    button {
+      padding: 14px 28px;
+      background: #009ee3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:hover:not(:disabled) {
+      background: #0073ce;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 158, 227, 0.3);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .button-secondary {
+      background: #6c757d;
+    }
+
+    .button-secondary:hover:not(:disabled) {
+      background: #5a6268;
+    }
+
+    .button-success {
+      background: #28a745;
+    }
+
+    .button-success:hover:not(:disabled) {
+      background: #218838;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .payment-info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .payment-info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .payment-info-item:last-child {
+      border-bottom: none;
+    }
+
+    .payment-info-item strong {
+      color: #555;
+    }
+
+    .payment-info-item code {
+      background: #f8f9fa;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #009ee3;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-badge.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-badge.approved {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #0c5460;
+    }
+
+    .info-box strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .card-form-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .card-form-container > div {
+      min-height: 40px;
+    }
+
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .test-cards {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #856404;
+    }
+
+    .test-cards h4 {
+      margin-bottom: 10px;
+      color: #856404;
+    }
+
+    .test-cards ul {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+
+    .test-cards li {
+      margin-bottom: 5px;
+    }
+
+    .test-cards code {
+      background: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💳 Teste de Pagamento Cartão - Mercado Pago</h1>
+      <p>Teste a integração de pagamentos com cartão de crédito via Mercado Pago</p>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <h2>Criar Pagamento com Cartão</h2>
+        
+        <div class="info-box">
+          <strong>💡 Configuração:</strong>
+          A chave pública do Mercado Pago é buscada automaticamente do backend.
+          Configure a variável de ambiente <code>MERCADO_PAGO_PUBLIC_KEY</code> no servidor.
+        </div>
+
+        <div class="test-cards">
+          <h4>🧪 Cartões de Teste do Mercado Pago (Brasil):</h4>
+          <p style="margin-bottom: 10px; font-size: 13px; color: #856404;">
+            <strong>💡 Para pagamentos APROVADOS, use:</strong>
+          </p>
+          <ul>
+            <li><strong>Visa:</strong> <code>4509 9535 6623 3704</code> | CVV: <code>123</code> | Data: <code>12/26</code> | Nome: <code>APRO</code> | CPF: <code>12345678909</code></li>
+            <li><strong>Mastercard:</strong> <code>5031 7557 3453 0604</code> | CVV: <code>123</code> | Data: <code>12/26</code> | Nome: <code>APRO</code> | CPF: <code>12345678909</code></li>
+            <li><strong>Visa (alternativo):</strong> <code>4235 6477 2802 5682</code> | CVV: <code>123</code> | Data: <code>12/26</code> | Nome: <code>APRO</code> | CPF: <code>12345678909</code></li>
+          </ul>
+          <p style="margin-top: 10px; margin-bottom: 10px; font-size: 13px; color: #721c24;">
+            <strong>⚠️ Cartões que retornam rejeição (para testes):</strong>
+          </p>
+          <ul>
+            <li><strong>Visa (Rejeitado - Insuficiente):</strong> <code>4013 5406 8274 6260</code> | CVV: <code>123</code> | Data: <code>12/26</code></li>
+            <li><strong>Mastercard (Rejeitado - Call for Authorize):</strong> <code>5031 4332 1540 6351</code> | CVV: <code>123</code> | Data: <code>12/26</code></li>
+          </ul>
+          <p style="margin-top: 10px; font-size: 12px; color: #856404;">
+            <strong>⚠️ Importante:</strong> 
+            <ul style="margin-left: 20px; margin-top: 5px;">
+              <li>Use uma data de vencimento futura (ex: 12/26, 01/27)</li>
+              <li>O formato deve ser MM/AA (2 dígitos para mês e 2 dígitos para ano)</li>
+              <li><strong>Use o nome "APRO" e CPF "12345678909" para garantir aprovação</strong></li>
+              <li>Se o pagamento for rejeitado com "cc_rejected_other_reason", tente outro cartão da lista acima</li>
+            </ul>
+          </p>
+        </div>
+
+        <form id="create-payment-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="amount">Valor (R$)</label>
+              <input type="number" id="amount" step="0.01" min="0.01" value="100.00" required>
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" value="test@test.com" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="description">Descrição</label>
+            <input type="text" id="description" value="Pagamento com cartão de crédito" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="installments">Parcelas</label>
+              <select id="installments" required>
+                <option value="1">1x sem juros</option>
+                <option value="2">2x sem juros</option>
+                <option value="3">3x sem juros</option>
+                <option value="4">4x sem juros</option>
+                <option value="5">5x sem juros</option>
+                <option value="6">6x sem juros</option>
+                <option value="12">12x sem juros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="payment_method_id">Bandeira</label>
+              <select id="payment_method_id">
+                <option value="">Detectar automaticamente</option>
+                <option value="visa">Visa</option>
+                <option value="master">Mastercard</option>
+                <option value="amex">American Express</option>
+                <option value="elo">Elo</option>
+                <option value="hipercard">Hipercard</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card-form-container">
+            <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #555;">Dados do Cartão</label>
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 13px; color: #856404;">
+              <strong>💡 Dica:</strong> A data de vencimento deve estar no formato <strong>MM/AA</strong> (ex: 12/26 para dezembro de 2026). 
+              Use sempre uma data futura.
+            </div>
+            <!-- Container para o Payment Brick -->
+            <div id="paymentBrick_container"></div>
+          </div>
+
+          <!-- O botão de pagamento está dentro do Payment Brick -->
+          <!-- Este botão pode ser usado para outras ações se necessário -->
+          <button type="button" id="create-payment-button" style="display: none;">
+            <span id="create-button-text">💳 Pagar com Cartão</span>
+            <span id="create-spinner" style="display: none;">Processando...</span>
+          </button>
+        </form>
+
+        <div id="create-message" class="message"></div>
+
+        <div id="payment-result" style="display: none;">
+          <div class="payment-info">
+            <div class="payment-info-item">
+              <strong>Payment ID:</strong>
+              <code id="payment-id-display"></code>
+            </div>
+            <div class="payment-info-item">
+              <strong>Status:</strong>
+              <span id="status-display"></span>
+            </div>
+            <div class="payment-info-item">
+              <strong>Valor:</strong>
+              <span id="amount-display"></span>
+            </div>
+            <div class="payment-info-item">
+              <strong>Parcelas:</strong>
+              <span id="installments-display"></span>
+            </div>
+            <div class="payment-info-item">
+              <strong>Bandeira:</strong>
+              <span id="payment-method-display"></span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+            <button id="check-status-button" class="button-secondary" onclick="checkPaymentStatus()" style="flex: 1; min-width: 200px;">
+              Verificar Status
+            </button>
+          </div>
+          <div id="status-message" class="message"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    let currentPaymentId = null;
+    let mp = null; // Mercado Pago instance
+    let paymentBrick = null;
+
+    // Buscar chave pública do backend
+    async function initializeMercadoPago() {
+      const message = document.getElementById('create-message');
+      const submitButton = document.getElementById('create-payment-button');
+      
+      try {
+        // Desabilitar botão enquanto inicializa
+        if (submitButton) {
+          submitButton.disabled = true;
+        }
+        
+        message.className = 'message info show';
+        message.textContent = '⏳ Inicializando Mercado Pago SDK...';
+        
+        // Verificar se o SDK do Mercado Pago está carregado
+        if (typeof MercadoPago === 'undefined') {
+          throw new Error('SDK do Mercado Pago não está carregado. Verifique se o script está incluído corretamente.');
+        }
+        
+        const response = await fetch(`${API_URL}/payments/config`);
+        
+        if (!response.ok) {
+          throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const config = await response.json();
+        
+        if (!config.mercadoPagoPublicKey) {
+          message.className = 'message error show';
+          message.textContent = '⚠️ Chave pública do Mercado Pago não configurada. Configure a variável de ambiente MERCADO_PAGO_PUBLIC_KEY no backend.';
+          return;
+        }
+
+        console.log('Inicializando Mercado Pago com chave pública:', config.mercadoPagoPublicKey.substring(0, 10) + '...');
+        
+        // Inicializar Mercado Pago SDK com a chave pública do backend
+        // Configurar locale explicitamente para pt-BR
+        mp = new MercadoPago(config.mercadoPagoPublicKey, {
+          locale: 'pt-BR',
+          advancedFraudPrevention: true
+        });
+
+        console.log('Mercado Pago SDK inicializado:', mp);
+        console.log('Métodos disponíveis:', Object.keys(mp));
+
+        // Aguardar um pouco mais para garantir que o SDK está totalmente pronto
+        setTimeout(() => {
+          initializePaymentBrick();
+        }, 200);
+      } catch (error) {
+        console.error('Erro ao buscar configuração:', error);
+        message.className = 'message error show';
+        message.textContent = `⚠️ Erro ao conectar com o backend: ${error.message}. Verifique se o servidor está rodando em ${API_URL}`;
+      }
+    }
+
+    // Inicializar quando a página carregar
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeMercadoPago();
+    });
+
+
+    async function initializePaymentBrick() {
+      if (!mp) {
+        console.error('Mercado Pago SDK não inicializado');
+        const message = document.getElementById('create-message');
+        message.className = 'message error show';
+        message.textContent = '⚠️ Mercado Pago SDK não inicializado. Recarregue a página.';
+        return;
+      }
+
+      const message = document.getElementById('create-message');
+      const submitButton = document.getElementById('create-payment-button');
+      const container = document.getElementById('paymentBrick_container');
+
+      // Verificar se o container existe
+      if (!container) {
+        console.error('Container do Payment Brick não encontrado');
+        message.className = 'message error show';
+        message.textContent = '⚠️ Container do Payment Brick não encontrado. Recarregue a página.';
+        if (submitButton) {
+          submitButton.disabled = true;
+        }
+        return;
+      }
+
+      // Verificar se o método bricks existe
+      if (typeof mp.bricks !== 'function') {
+        console.error('Método bricks não disponível');
+        console.log('Métodos disponíveis em mp:', Object.keys(mp));
+        message.className = 'message error show';
+        message.textContent = '⚠️ Método bricks não disponível. Verifique se o SDK está atualizado.';
+        if (submitButton) {
+          submitButton.disabled = true;
+        }
+        return;
+      }
+
+      const amount = parseFloat(document.getElementById('amount').value || '100.00');
+      
+      try {
+        console.log('Inicializando Payment Brick com amount:', amount);
+        
+        const bricksBuilder = mp.bricks();
+        
+        const settings = {
+          initialization: {
+            amount: amount,
+            locale: 'pt_BR', // Locale específico para o Brick
+          },
+          customization: {
+            paymentMethods: {
+              creditCard: 'all',
+              debitCard: 'all',
+            },
+            visual: {
+              style: {
+                theme: 'default',
+              },
+            },
+            texts: {
+              formTitle: 'Dados do cartão',
+              emailSectionTitle: 'Email',
+              cardSectionTitle: 'Dados do cartão',
+              cardholderName: {
+                label: 'Nome no cartão',
+                placeholder: 'Nome como aparece no cartão',
+              },
+              cardholderIdentification: {
+                label: 'CPF/CNPJ',
+                placeholder: '000.000.000-00',
+              },
+              cardExpirationDate: {
+                label: 'Data de vencimento',
+                placeholder: 'MM/AA',
+              },
+              cardNumber: {
+                label: 'Número do cartão',
+                placeholder: '0000 0000 0000 0000',
+              },
+              securityCode: {
+                label: 'Código de segurança',
+                placeholder: 'CVV',
+              },
+              installments: {
+                label: 'Parcelas',
+                placeholder: 'Selecione o número de parcelas',
+              },
+              formSubmit: 'Pagar',
+            },
+          },
+          callbacks: {
+            onReady: () => {
+              console.log('Payment Brick está pronto');
+              message.className = 'message success show';
+              message.textContent = '✅ Payment Brick inicializado com sucesso! Preencha os dados do cartão.';
+              if (submitButton) {
+                submitButton.disabled = false;
+              }
+            },
+            onError: (error) => {
+              console.error('Erro no Payment Brick (antes do submit):', error);
+              console.error('Tipo do erro:', typeof error);
+              console.error('Erro completo:', JSON.stringify(error, null, 2));
+              
+              // Extrair mensagem de erro mais detalhada
+              let errorMessage = 'Erro desconhecido';
+              if (error && typeof error === 'object') {
+                errorMessage = error.message || error.description || error.cause || JSON.stringify(error);
+              } else if (error) {
+                errorMessage = String(error);
+              }
+              
+              message.className = 'message error show';
+              message.innerHTML = `⚠️ <strong>Erro no Payment Brick:</strong><br>${errorMessage}<br><small>Verifique os dados do cartão, especialmente a data de vencimento (formato MM/AA).</small>`;
+              if (submitButton) {
+                submitButton.disabled = false;
+              }
+            },
+            onSubmit: async (formData, additionalData) => {
+              console.log('=== Dados do Payment Brick ===');
+              console.log('formData completo:', formData);
+              console.log('Tipo de formData:', typeof formData);
+              console.log('É array?', Array.isArray(formData));
+              console.log('É null?', formData === null);
+              console.log('É undefined?', formData === undefined);
+              
+              if (formData && typeof formData === 'object') {
+                console.log('Keys de formData:', Object.keys(formData));
+                console.log('formData stringificado:', JSON.stringify(formData, null, 2));
+                
+                // Verificar se tem propriedade id diretamente
+                console.log('formData.id:', formData.id);
+                console.log('formData.hasOwnProperty("id"):', formData.hasOwnProperty('id'));
+                console.log('"id" in formData:', 'id' in formData);
+              }
+              
+              if (additionalData) {
+                console.log('additionalData:', additionalData);
+                console.log('additionalData stringificado:', JSON.stringify(additionalData, null, 2));
+              }
+              
+              // Verificar se formData é uma Promise ou precisa ser aguardado
+              if (formData && typeof formData.then === 'function') {
+                console.log('formData é uma Promise, aguardando...');
+                formData = await formData;
+                console.log('formData após await:', formData);
+              }
+              
+              // Desabilitar botão durante processamento
+              if (submitButton) {
+                submitButton.disabled = true;
+              }
+              
+              message.className = 'message info show';
+              message.textContent = '⏳ Processando pagamento...';
+              
+              try {
+                const email = document.getElementById('email').value;
+                const description = document.getElementById('description').value;
+                const installments = parseInt(document.getElementById('installments').value) || 1;
+                const paymentMethodId = document.getElementById('payment_method_id').value || undefined;
+                
+                // Extrair dados do formData do Brick
+                // O Payment Brick retorna uma estrutura com formData.formData contendo o token
+                let token = null;
+                let issuerId = null;
+                let detectedPaymentMethodId = null;
+                
+                console.log('=== Tentando extrair token ===');
+                
+                // A estrutura real é: formData.formData.token
+                if (formData && typeof formData === 'object') {
+                  // Primeiro tentar a estrutura aninhada (formData.formData)
+                  if (formData.formData && formData.formData.token) {
+                    console.log('Token encontrado em formData.formData.token:', formData.formData.token);
+                    token = formData.formData.token;
+                    
+                    // Extrair outros dados da mesma estrutura
+                    if (formData.formData.issuer_id) {
+                      issuerId = formData.formData.issuer_id;
+                    }
+                    if (formData.formData.payment_method_id) {
+                      detectedPaymentMethodId = formData.formData.payment_method_id;
+                    }
+                  }
+                  // Tentar acesso direto (caso a estrutura seja diferente)
+                  else if (formData.token) {
+                    console.log('Token encontrado em formData.token:', formData.token);
+                    token = formData.token;
+                    if (formData.issuer_id) {
+                      issuerId = formData.issuer_id;
+                    }
+                    if (formData.payment_method_id) {
+                      detectedPaymentMethodId = formData.payment_method_id;
+                    }
+                  }
+                  // Tentar outras estruturas possíveis
+                  else if (formData.id) {
+                    console.log('Token encontrado em formData.id:', formData.id);
+                    token = formData.id;
+                  } else if (formData.data && formData.data.token) {
+                    console.log('Token encontrado em formData.data.token:', formData.data.token);
+                    token = formData.data.token;
+                  }
+                }
+                
+                // Os dados já foram extraídos acima se estiverem em formData.formData
+                // Se não foram encontrados, tentar outras estruturas
+                if (!issuerId) {
+                  if (formData.issuer_id) {
+                    issuerId = formData.issuer_id;
+                  } else if (formData.issuerId) {
+                    issuerId = formData.issuerId;
+                  } else if (formData.data && formData.data.issuer_id) {
+                    issuerId = formData.data.issuer_id;
+                  }
+                }
+                
+                if (!detectedPaymentMethodId) {
+                  if (formData.payment_method_id) {
+                    detectedPaymentMethodId = formData.payment_method_id;
+                  } else if (formData.paymentMethodId) {
+                    detectedPaymentMethodId = formData.paymentMethodId;
+                  } else if (formData.data && formData.data.payment_method_id) {
+                    detectedPaymentMethodId = formData.data.payment_method_id;
+                  } else {
+                    // Se ainda não tiver, usar o valor do select
+                    detectedPaymentMethodId = paymentMethodId;
+                  }
+                }
+                
+                // Log detalhado dos dados extraídos
+                console.log('=== Dados Extraídos ===');
+                console.log('Token (id) encontrado:', token);
+                console.log('Issuer ID encontrado:', issuerId);
+                console.log('Payment Method ID encontrado:', detectedPaymentMethodId);
+                console.log('Primeiros 6 dígitos:', formData.first_six_digits);
+                console.log('Últimos 4 dígitos:', formData.last_four_digits);
+                
+                // Validar que temos o token (que é o id do objeto retornado)
+                if (!token) {
+                  console.error('Token (id) não encontrado no formData');
+                  console.error('Estrutura completa do formData:', JSON.stringify(formData, null, 2));
+                  throw new Error('Token do cartão não foi gerado. O campo "id" não foi encontrado no retorno do Payment Brick.');
+                }
+                
+                console.log('✅ Token válido encontrado:', token);
+                
+                // Extrair dados do payer do formData se disponível
+                let payerIdentificationType = null;
+                let payerIdentificationNumber = null;
+                
+                if (formData.formData && formData.formData.payer) {
+                  if (formData.formData.payer.identification) {
+                    payerIdentificationType = formData.formData.payer.identification.type;
+                    payerIdentificationNumber = formData.formData.payer.identification.number;
+                    console.log('Identification encontrada no formData:', {
+                      type: payerIdentificationType,
+                      number: payerIdentificationNumber
+                    });
+                  }
+                }
+                
+                // Se não encontrou identification no formData, tentar usar valores padrão para testes
+                // Isso ajuda a garantir que os pagamentos de teste sejam aprovados
+                if (!payerIdentificationType || !payerIdentificationNumber) {
+                  console.log('Identification não encontrada no formData, usando valores padrão para teste');
+                  // Não forçar valores padrão, deixar o backend decidir se é necessário
+                }
+                
+                // Preparar dados do pagamento
+                const paymentData = {
+                  amount,
+                  email,
+                  description,
+                  token,
+                  installments,
+                  payment_method_id: detectedPaymentMethodId,
+                  issuer_id: issuerId,
+                };
+                
+                // Adicionar identification se disponível
+                if (payerIdentificationType && payerIdentificationNumber) {
+                  paymentData.payer_identification_type = payerIdentificationType;
+                  paymentData.payer_identification_number = payerIdentificationNumber;
+                }
+                
+                console.log('=== Dados do pagamento ===');
+                console.log('Payment data:', JSON.stringify(paymentData, null, 2));
+                
+                // Criar pagamento no backend
+                const response = await fetch(`${API_URL}/payments/card`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(paymentData),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                  throw new Error(data.message || 'Erro ao criar pagamento');
+                }
+
+                // Exibir resultado
+                currentPaymentId = data.payment_id;
+                document.getElementById('payment-id-display').textContent = data.payment_id;
+                document.getElementById('amount-display').textContent = `R$ ${data.amount.toFixed(2)}`;
+                document.getElementById('installments-display').textContent = `${data.installments}x`;
+                document.getElementById('payment-method-display').textContent = data.payment_method_id || 'N/A';
+                
+                const statusBadge = getStatusBadge(data.status);
+                document.getElementById('status-display').innerHTML = statusBadge;
+
+                document.getElementById('payment-result').style.display = 'block';
+                
+                // Mensagem baseada no status
+                if (data.status === 'approved') {
+                  message.className = 'message success show';
+                  message.textContent = `✅ Pagamento aprovado com sucesso!`;
+                } else if (data.status === 'pending') {
+                  message.className = 'message info show';
+                  message.textContent = `⏳ Pagamento pendente - Aguardando confirmação...`;
+                } else if (data.status === 'rejected') {
+                  message.className = 'message error show';
+                  let rejectionMessage = `❌ <strong>Pagamento rejeitado</strong>`;
+                  
+                  if (data.status_detail) {
+                    // Mapear status_detail para mensagens mais amigáveis
+                    const statusDetailMessages = {
+                      'cc_rejected_bad_filled_card_number': 'Número do cartão incorreto',
+                      'cc_rejected_bad_filled_date': 'Data de vencimento incorreta',
+                      'cc_rejected_bad_filled_security_code': 'Código de segurança (CVV) incorreto',
+                      'cc_rejected_bad_filled_other': 'Dados do cartão incorretos',
+                      'cc_rejected_insufficient_amount': 'Saldo insuficiente',
+                      'cc_rejected_call_for_authorize': 'Necessário autorizar com o banco',
+                      'cc_rejected_card_disabled': 'Cartão desativado',
+                      'cc_rejected_high_risk': 'Pagamento de alto risco',
+                      'cc_rejected_blacklist': 'Cartão na lista negra',
+                      'cc_rejected_other_reason': 'Outro motivo de rejeição',
+                    };
+                    
+                    const friendlyMessage = statusDetailMessages[data.status_detail] || data.status_detail;
+                    rejectionMessage += `<br><strong>Motivo:</strong> ${friendlyMessage} (${data.status_detail})`;
+                  }
+                  
+                  rejectionMessage += `<br><small>💡 Dica: Use um cartão de teste marcado como "Aprovado" na lista acima, com nome "APRO" e CPF "12345678909".</small>`;
+                  message.innerHTML = rejectionMessage;
+                  
+                  // Log detalhado da rejeição
+                  console.error('=== Pagamento Rejeitado ===');
+                  console.error('Status:', data.status);
+                  console.error('Status Detail:', data.status_detail);
+                  console.error('Payment ID:', data.payment_id);
+                  console.error('Payment Method ID:', data.payment_method_id);
+                  console.error('Amount:', data.amount);
+                } else {
+                  message.className = 'message info show';
+                  message.textContent = `ℹ️ Pagamento criado - Status: ${data.status}`;
+                }
+                
+              } catch (error) {
+                console.error('Erro ao processar pagamento:', error);
+                message.className = 'message error show';
+                message.textContent = `❌ Erro: ${error.message}`;
+              } finally {
+                if (submitButton) {
+                  submitButton.disabled = false;
+                }
+              }
+            },
+            onError: (error) => {
+              console.error('Erro no Payment Brick (durante/após submit):', error);
+              console.error('Tipo do erro:', typeof error);
+              console.error('Erro completo:', JSON.stringify(error, null, 2));
+              
+              // Extrair mensagem de erro mais detalhada
+              let errorMessage = 'Erro desconhecido';
+              if (error && typeof error === 'object') {
+                errorMessage = error.message || error.description || error.cause || JSON.stringify(error);
+              } else if (error) {
+                errorMessage = String(error);
+              }
+              
+              message.className = 'message error show';
+              message.innerHTML = `⚠️ <strong>Erro no Payment Brick:</strong><br>${errorMessage}<br><small>Verifique os dados do cartão e o console para mais detalhes.</small>`;
+              if (submitButton) {
+                submitButton.disabled = false;
+              }
+            },
+          },
+        };
+
+        console.log('Criando Payment Brick...');
+        paymentBrick = await bricksBuilder.create('payment', 'paymentBrick_container', settings);
+        console.log('Payment Brick criado:', paymentBrick);
+        
+      } catch (error) {
+        console.error('Erro ao criar Payment Brick:', error);
+        message.className = 'message error show';
+        message.textContent = `⚠️ Erro ao criar Payment Brick: ${error.message || error}`;
+        if (submitButton) {
+          submitButton.disabled = true;
+        }
+      }
+    }
+
+    // Criar Pagamento com Cartão
+    // Nota: Com Payment Brick, o submit é tratado pelo callback onSubmit do Brick
+    // Este handler só é necessário se houver outros campos no formulário
+    document.getElementById('create-payment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!mp || !paymentBrick) {
+        const message = document.getElementById('create-message');
+        message.className = 'message error show';
+        message.textContent = '⚠️ Payment Brick não inicializado. Aguarde a inicialização.';
+        return;
+      }
+      
+      // O Payment Brick gerencia o submit automaticamente através do callback onSubmit
+      // Este handler apenas informa ao usuário para usar o formulário do Brick
+      const message = document.getElementById('create-message');
+      message.className = 'message info show';
+      message.textContent = 'ℹ️ Use o formulário do Payment Brick acima para realizar o pagamento.';
+    });
+
+    // Verificar status do pagamento
+    async function checkPaymentStatus() {
+      if (!currentPaymentId) {
+        const message = document.getElementById('status-message');
+        message.className = 'message error show';
+        message.textContent = 'Nenhum pagamento criado ainda.';
+        return;
+      }
+
+      const button = document.getElementById('check-status-button');
+      const message = document.getElementById('status-message');
+      
+      button.disabled = true;
+      message.classList.remove('show');
+      message.className = 'message info show';
+      message.textContent = 'Verificando status...';
+      message.style.display = 'block';
+
+      try {
+        const response = await fetch(`${API_URL}/payments/card/${currentPaymentId}/status`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao verificar status');
+        }
+        
+        const data = await response.json();
+        
+        // Atualizar badge de status
+        const statusBadge = getStatusBadge(data.status);
+        document.getElementById('status-display').innerHTML = statusBadge;
+        
+        // Atualizar mensagem baseada no status
+        if (data.status === 'approved') {
+          message.className = 'message success show';
+          message.textContent = `✅ Pagamento aprovado! Valor: R$ ${data.amount.toFixed(2)}`;
+          if (data.date_approved) {
+            const approvedDate = new Date(data.date_approved);
+            message.textContent += ` | Aprovado em: ${approvedDate.toLocaleString('pt-BR')}`;
+          }
+        } else if (data.status === 'pending') {
+          message.className = 'message info show';
+          message.textContent = `⏳ Pagamento ainda pendente. Valor: R$ ${data.amount.toFixed(2)}`;
+          if (data.date_created) {
+            const createdDate = new Date(data.date_created);
+            message.textContent += ` | Criado em: ${createdDate.toLocaleString('pt-BR')}`;
+          }
+        } else if (data.status === 'rejected') {
+          message.className = 'message error show';
+          message.textContent = `❌ Pagamento rejeitado. Valor: R$ ${data.amount.toFixed(2)}`;
+        } else {
+          message.className = 'message info show';
+          message.textContent = `Status: ${data.status} | Valor: R$ ${data.amount.toFixed(2)}`;
+        }
+        
+      } catch (error) {
+        message.className = 'message error show';
+        message.textContent = `❌ Erro ao verificar status: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    // Badge de status
+    function getStatusBadge(status) {
+      const statusMap = {
+        pending: { class: 'pending', text: 'Pendente' },
+        approved: { class: 'approved', text: 'Aprovado' },
+        rejected: { class: 'rejected', text: 'Rejeitado' },
+        in_process: { class: 'pending', text: 'Processando' },
+        cancelled: { class: 'rejected', text: 'Cancelado' },
+      };
+
+      const statusInfo = statusMap[status] || { class: 'pending', text: status };
+      return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+    }
+  </script>
+</body>
+</html>
+

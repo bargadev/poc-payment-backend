@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Pagamento PIX - Mercado Pago</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #009ee3 0%, #0073ce 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+      padding: 25px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #009ee3;
+    }
+
+    .section h2 {
+      color: #333;
+      font-size: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section h2::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: #009ee3;
+      border-radius: 2px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #009ee3;
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    button {
+      padding: 14px 28px;
+      background: #009ee3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:hover:not(:disabled) {
+      background: #0073ce;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 158, 227, 0.3);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .button-secondary {
+      background: #6c757d;
+    }
+
+    .button-secondary:hover:not(:disabled) {
+      background: #5a6268;
+    }
+
+    .button-success {
+      background: #28a745;
+    }
+
+    .button-success:hover:not(:disabled) {
+      background: #218838;
+    }
+
+    .button-success:disabled {
+      background: #6c757d;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .qr-code-container {
+      text-align: center;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      margin-top: 20px;
+      border: 2px dashed #009ee3;
+    }
+
+    .qr-code-container img {
+      max-width: 300px;
+      width: 100%;
+      height: auto;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      background: white;
+      margin-bottom: 15px;
+    }
+
+    .qr-code-text {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 12px;
+      color: #333;
+      border: 1px solid #e0e0e0;
+    }
+
+    .payment-info {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .payment-info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .payment-info-item:last-child {
+      border-bottom: none;
+    }
+
+    .payment-info-item strong {
+      color: #555;
+    }
+
+    .payment-info-item code {
+      background: #f8f9fa;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #009ee3;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-badge.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-badge.approved {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .code-block {
+      background: #282c34;
+      color: #abb2bf;
+      padding: 20px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .code-block pre {
+      margin: 0;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tab {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.3s;
+    }
+
+    .tab.active {
+      color: #009ee3;
+      border-bottom-color: #009ee3;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #0c5460;
+    }
+
+    .info-box strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📱 Teste de Pagamento PIX - Mercado Pago</h1>
+      <p>Teste a integração de pagamentos PIX via Mercado Pago</p>
+    </div>
+
+    <div class="content">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('create')">Criar Pagamento PIX</button>
+        <button class="tab" onclick="switchTab('webhook')">Testar Webhook</button>
+        <button class="tab" onclick="switchTab('examples')">Exemplos</button>
+      </div>
+
+      <!-- Tab: Criar Pagamento PIX -->
+      <div id="tab-create" class="tab-content active">
+        <div class="section">
+          <h2>Criar Pagamento PIX</h2>
+          
+          <div class="info-box">
+            <strong>💡 Informações:</strong>
+            O pagamento PIX será criado e você receberá um QR Code para pagamento.
+            <strong>No ambiente de teste, use o botão "Concluir Pagamento" para simular a aprovação.</strong>
+          </div>
+
+          <form id="create-pix-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="amount">Valor (R$)</label>
+                <input type="number" id="amount" step="0.01" min="0.01" value="49.90" required>
+              </div>
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" value="test@test.com" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="description">Descrição</label>
+              <input type="text" id="description" value="Pagamento POC PIX" required>
+            </div>
+            <button type="submit" id="create-pix-button">
+              <span id="create-button-text">Criar Pagamento PIX</span>
+              <span id="create-spinner" style="display: none;">Criando...</span>
+            </button>
+          </form>
+
+          <div id="create-message" class="message"></div>
+
+          <div id="pix-result" style="display: none;">
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 6px; margin-bottom: 20px; color: #856404;">
+              <strong>⚠️ Ambiente de Teste:</strong> Este QR Code é apenas para visualização. 
+              Para finalizar o teste, clique no botão <strong>"Concluir Pagamento"</strong> abaixo.
+            </div>
+            
+            <div class="qr-code-container">
+              <h3 style="margin-bottom: 15px;">QR Code PIX</h3>
+              <div id="qr-code-image"></div>
+              <div id="qr-code-text" class="qr-code-text"></div>
+            </div>
+
+            <div class="payment-info">
+              <div class="payment-info-item">
+                <strong>Payment ID:</strong>
+                <code id="payment-id-display"></code>
+              </div>
+              <div class="payment-info-item">
+                <strong>Status:</strong>
+                <span id="status-display"></span>
+              </div>
+              <div class="payment-info-item">
+                <strong>Valor:</strong>
+                <span id="amount-display"></span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+              <button id="complete-payment-button" class="button-success" onclick="completePayment()" style="flex: 1; min-width: 200px;">
+                <span id="complete-button-text">✅ Concluir Pagamento (Teste)</span>
+                <span id="complete-spinner" style="display: none;">Processando...</span>
+              </button>
+              <button id="check-status-button" class="button-secondary" onclick="checkPaymentStatus()" style="flex: 1; min-width: 200px;">
+                Verificar Status
+              </button>
+            </div>
+            <div id="status-message" class="message"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Testar Webhook -->
+      <div id="tab-webhook" class="tab-content">
+        <div class="section">
+          <h2>Testar Webhook</h2>
+          
+          <div class="info-box">
+            <strong>💡 Informações:</strong>
+            Simule eventos de webhook do Mercado Pago para testar o processamento.
+          </div>
+
+          <form id="webhook-form">
+            <div class="form-group">
+              <label for="webhook-type">Tipo de Evento</label>
+              <select id="webhook-type" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                <option value="payment.created">payment.created</option>
+                <option value="payment.updated">payment.updated</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="webhook-payment-id">Payment ID</label>
+              <input type="text" id="webhook-payment-id" placeholder="123456789" required>
+            </div>
+            <div class="form-group">
+              <label for="webhook-status">Status</label>
+              <select id="webhook-status" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                <option value="pending">pending</option>
+                <option value="approved">approved</option>
+                <option value="rejected">rejected</option>
+              </select>
+            </div>
+            <button type="submit" id="webhook-button">
+              <span id="webhook-button-text">Enviar Webhook</span>
+              <span id="webhook-spinner" style="display: none;">Enviando...</span>
+            </button>
+          </form>
+
+          <div id="webhook-message" class="message"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Exemplos -->
+      <div id="tab-examples" class="tab-content">
+        <div class="section">
+          <h2>Exemplos de Código</h2>
+          
+          <h3 style="margin-top: 20px; margin-bottom: 10px; color: #555;">Exemplo 1: Criar pagamento PIX</h3>
+          <div class="code-block">
+            <pre>fetch('http://localhost:3000/payments/pix', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    amount: 49.90,
+    email: 'test@test.com',
+    description: 'Pagamento POC PIX'
+  })
+})
+.then(response => response.json())
+.then(data => {
+  console.log('QR Code Base64:', data.qr_code_base64);
+  console.log('QR Code (copia e cola):', data.qr_code);
+  console.log('Payment ID:', data.payment_id);
+  console.log('Status:', data.status);
+})
+.catch(error => console.error('Error:', error));</pre>
+          </div>
+
+          <h3 style="margin-top: 30px; margin-bottom: 10px; color: #555;">Exemplo 2: Testar webhook</h3>
+          <div class="code-block">
+            <pre>fetch('http://localhost:3000/webhooks/mercadopago', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    type: 'payment.updated',
+    data: {
+      id: '123456789',
+      status: 'approved'
+    }
+  })
+})
+.then(response => response.json())
+.then(data => console.log('Webhook response:', data))
+.catch(error => console.error('Error:', error));</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    let currentPaymentId = null;
+    let statusCheckInterval = null;
+
+    // Tabs
+    function switchTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+
+      // Show selected tab
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Criar Pagamento PIX
+    document.getElementById('create-pix-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const button = document.getElementById('create-pix-button');
+      const buttonText = document.getElementById('create-button-text');
+      const spinner = document.getElementById('create-spinner');
+      const message = document.getElementById('create-message');
+      const result = document.getElementById('pix-result');
+
+      button.disabled = true;
+      buttonText.style.display = 'none';
+      spinner.style.display = 'inline';
+      message.classList.remove('show');
+
+      try {
+        const amount = parseFloat(document.getElementById('amount').value);
+        const email = document.getElementById('email').value;
+        const description = document.getElementById('description').value;
+
+        const response = await fetch(`${API_URL}/payments/pix`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ amount, email, description }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Erro ao criar pagamento');
+        }
+
+        // Exibir resultado
+        currentPaymentId = data.payment_id;
+
+        // QR Code
+        const qrCodeImage = document.getElementById('qr-code-image');
+        if (data.qr_code_base64) {
+          qrCodeImage.innerHTML = `<img src="data:image/png;base64,${data.qr_code_base64}" alt="QR Code PIX">`;
+        } else {
+          qrCodeImage.innerHTML = '<p style="color: #666;">QR Code não disponível</p>';
+        }
+
+        // QR Code texto
+        if (data.qr_code) {
+          document.getElementById('qr-code-text').textContent = data.qr_code;
+        }
+
+        // Informações do pagamento
+        document.getElementById('payment-id-display').textContent = data.payment_id;
+        document.getElementById('amount-display').textContent = `R$ ${amount.toFixed(2)}`;
+        
+        const statusBadge = getStatusBadge(data.status);
+        document.getElementById('status-display').innerHTML = statusBadge;
+
+        result.style.display = 'block';
+        message.className = 'message success show';
+        message.textContent = '✅ Pagamento PIX criado com sucesso! Use o botão "Concluir Pagamento" para simular a aprovação.';
+
+        // Não iniciar polling automático, deixar o usuário controlar
+        // startStatusPolling();
+
+      } catch (error) {
+        message.className = 'message error show';
+        message.textContent = `❌ Erro: ${error.message}`;
+      } finally {
+        button.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+      }
+    });
+
+    // Concluir pagamento (simular aprovação)
+    async function completePayment() {
+      if (!currentPaymentId) {
+        const message = document.getElementById('status-message');
+        message.className = 'message error show';
+        message.textContent = 'Nenhum pagamento criado ainda.';
+        return;
+      }
+
+      const button = document.getElementById('complete-payment-button');
+      const buttonText = document.getElementById('complete-button-text');
+      const spinner = document.getElementById('complete-spinner');
+      const message = document.getElementById('status-message');
+      
+      button.disabled = true;
+      buttonText.style.display = 'none';
+      spinner.style.display = 'inline';
+      message.classList.remove('show');
+
+      try {
+        // Simular aprovação via webhook
+        const response = await fetch(`${API_URL}/webhooks/mercadopago`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'payment.updated',
+            data: {
+              id: currentPaymentId.toString(),
+              status: 'approved',
+            },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Erro ao concluir pagamento');
+        }
+
+        // Atualizar UI
+        const statusBadge = getStatusBadge('approved');
+        document.getElementById('status-display').innerHTML = statusBadge;
+
+        message.className = 'message success show';
+        message.textContent = '✅ Pagamento concluído com sucesso! (Simulado em ambiente de teste)';
+        
+        // Reabilitar botão para permitir múltiplas conclusões
+        button.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+        
+        // Parar polling
+        stopStatusPolling();
+
+      } catch (error) {
+        message.className = 'message error show';
+        message.textContent = `❌ Erro: ${error.message}`;
+        button.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+      }
+    }
+
+    // Verificar status do pagamento
+    async function checkPaymentStatus() {
+      if (!currentPaymentId) {
+        const message = document.getElementById('status-message');
+        message.className = 'message error show';
+        message.textContent = 'Nenhum pagamento criado ainda.';
+        return;
+      }
+
+      const button = document.getElementById('check-status-button');
+      const message = document.getElementById('status-message');
+      
+      button.disabled = true;
+      message.classList.remove('show');
+      message.className = 'message info show';
+      message.textContent = 'Verificando status...';
+      message.style.display = 'block';
+
+      try {
+        // Buscar status real do pagamento na API do Mercado Pago
+        const response = await fetch(`${API_URL}/payments/pix/${currentPaymentId}/status`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao verificar status');
+        }
+        
+        const data = await response.json();
+        
+        // Atualizar badge de status
+        const statusBadge = getStatusBadge(data.status);
+        document.getElementById('status-display').innerHTML = statusBadge;
+        
+        // Atualizar mensagem baseada no status
+        if (data.status === 'approved') {
+          message.className = 'message success show';
+          message.textContent = `✅ Pagamento aprovado! Valor: R$ ${data.amount.toFixed(2)}`;
+          if (data.date_approved) {
+            const approvedDate = new Date(data.date_approved);
+            message.textContent += ` | Aprovado em: ${approvedDate.toLocaleString('pt-BR')}`;
+          }
+        } else if (data.status === 'pending') {
+          message.className = 'message info show';
+          message.textContent = `⏳ Pagamento ainda pendente. Valor: R$ ${data.amount.toFixed(2)}`;
+          if (data.date_created) {
+            const createdDate = new Date(data.date_created);
+            message.textContent += ` | Criado em: ${createdDate.toLocaleString('pt-BR')}`;
+          }
+        } else if (data.status === 'rejected') {
+          message.className = 'message error show';
+          message.textContent = `❌ Pagamento rejeitado. Valor: R$ ${data.amount.toFixed(2)}`;
+        } else {
+          message.className = 'message info show';
+          message.textContent = `Status: ${data.status} | Valor: R$ ${data.amount.toFixed(2)}`;
+        }
+        
+      } catch (error) {
+        message.className = 'message error show';
+        message.textContent = `❌ Erro ao verificar status: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    // Polling de status
+    function startStatusPolling() {
+      stopStatusPolling();
+      statusCheckInterval = setInterval(() => {
+        checkPaymentStatus();
+      }, 5000); // Verificar a cada 5 segundos
+    }
+
+    function stopStatusPolling() {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        statusCheckInterval = null;
+      }
+    }
+
+    // Badge de status
+    function getStatusBadge(status) {
+      const statusMap = {
+        pending: { class: 'pending', text: 'Pendente' },
+        approved: { class: 'approved', text: 'Aprovado' },
+        rejected: { class: 'rejected', text: 'Rejeitado' },
+      };
+
+      const statusInfo = statusMap[status] || { class: 'pending', text: status };
+      return `<span class="status-badge ${statusInfo.class}">${statusInfo.text}</span>`;
+    }
+
+    // Webhook
+    document.getElementById('webhook-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const button = document.getElementById('webhook-button');
+      const buttonText = document.getElementById('webhook-button-text');
+      const spinner = document.getElementById('webhook-spinner');
+      const message = document.getElementById('webhook-message');
+
+      button.disabled = true;
+      buttonText.style.display = 'none';
+      spinner.style.display = 'inline';
+      message.classList.remove('show');
+
+      try {
+        const type = document.getElementById('webhook-type').value;
+        const paymentId = document.getElementById('webhook-payment-id').value;
+        const status = document.getElementById('webhook-status').value;
+
+        const response = await fetch(`${API_URL}/webhooks/mercadopago`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type,
+            data: {
+              id: paymentId,
+              status,
+            },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Erro ao enviar webhook');
+        }
+
+        message.className = 'message success show';
+        message.textContent = `✅ Webhook enviado com sucesso! Recebido: ${data.received}, Processado: ${data.processed}`;
+
+      } catch (error) {
+        message.className = 'message error show';
+        message.textContent = `❌ Erro: ${error.message}`;
+      } finally {
+        button.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+      }
+    });
+
+    // Preencher payment ID do webhook com o último criado
+    document.getElementById('create-pix-form').addEventListener('submit', () => {
+      setTimeout(() => {
+        if (currentPaymentId) {
+          document.getElementById('webhook-payment-id').value = currentPaymentId;
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
+
